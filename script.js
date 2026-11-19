@@ -62,10 +62,15 @@ function inputDecimal(dot) {
 
 // Hàm xử lý toán tử
 function handleOperator(nextOperator, isSpecial = false) {
-    const { firstOperand, displayValue, operator } = calculator;
+    const { firstOperand, displayValue, operator, waitingForSecondOperand } = calculator;
     // Chuyển giá trị hiển thị thành số thực
     const inputValue = parseFloat(displayValue);
 
+    // Nếu đang chờ số thứ 2 mà người dùng bấm đổi toán tử khác -> chỉ cập nhật operator
+    if (operator && waitingForSecondOperand && !isSpecial) {
+        calculator.operator = nextOperator;
+        return;
+    }
     // Kiểm tra Number.isFinite() như trong tài liệu
     if (!Number.isFinite(inputValue) && inputValue !== 0) {
         // Không làm gì nếu giá trị hiện tại là NaN, Infinity, -Infinity
@@ -125,6 +130,35 @@ function resetCalculator() {
     updateDisplay();
 }
 
+// Hàm xóa 1 ký tự cuối cùng
+function deleteLastDigit() {
+    // Không xóa nếu vừa tính xong kết quả hoặc đang chờ nhập toán hạng thứ 2
+    if (calculator.waitingForSecondOperand) {
+        return;
+    }
+
+    const currentDisplay = String(calculator.displayValue);
+
+    // Nếu màn hình đang báo lỗi (không phải số hợp lệ), reset về '0'
+    if (currentDisplay.includes('Lỗi') || currentDisplay === 'NaN' || currentDisplay.includes('Infinity')) {
+        calculator.displayValue = '0';
+        updateDisplay();
+        return;
+    }
+
+    // Xóa 1 ký tự ở cuối
+    const slicedValue = currentDisplay.slice(0, -1);
+
+    // Nếu xóa hết (chuỗi rỗng) hoặc chỉ còn dấu '-' thì đặt lại về '0'
+    if (slicedValue === '' || slicedValue === '-') {
+        calculator.displayValue = '0';
+    } else {
+        calculator.displayValue = slicedValue;
+    }
+
+    updateDisplay();
+}
+
 // Lắng nghe sự kiện click trên các nút
 keys.addEventListener('click', (event) => {
     const { target } = event;
@@ -171,6 +205,44 @@ keys.addEventListener('click', (event) => {
         }
         return;
     }
+});
+
+document.addEventListener("keydown", (event) => {
+    if (Number.isFinite(Number(event.key.toString()))) {
+        inputDigit(event.key.toString());
+    }
+    else if (event.key.toString() == '.') {
+        inputDecimal('.');
+    }
+    else if (event.key === 'Backspace') {
+        event.preventDefault(); // Tránh trình duyệt thực hiện hành động mặc định
+        deleteLastDigit();
+    }
+    else if (['+', '-', '*', '/', '=', 'Enter'].includes(event.key.toString())) {
+            event.preventDefault(); // Tránh kích hoạt lại nút đang focus trên giao diện
+            switch (event.key.toString()) {
+                case '+':
+                    handleOperator('add', false);
+                    break;
+                case '-':
+                    handleOperator('subtract', false);
+                    break;
+                case '*':
+                    handleOperator('multiply', false);
+                    break;
+                case '/':
+                    handleOperator('divide', false);
+                    break;
+                case '=':
+                case 'Enter':
+                    if (calculator.operator) {
+                        handleOperator(calculator.operator, false);
+                        calculator.waitingForSecondOperand = true;
+                        calculator.operator = null;
+                    }
+                    break;
+            }
+        }   
 });
 
 // Khởi tạo hiển thị
