@@ -83,6 +83,10 @@ function handleOperator(nextOperator, isSpecial = false) {
         calculator.displayValue = String(result);
         calculator.firstOperand = result;
     }
+    else if (firstOperand === null || operator === null) {
+        // Lưu số hiện tại làm toán hạng đầu tiên (cả khi mới bật máy hoặc vừa bấm '=' xong)
+        calculator.firstOperand = inputValue;
+    }
     else if (firstOperand === null) {
         // Đây là toán hạng đầu tiên
         calculator.firstOperand = inputValue;
@@ -190,10 +194,13 @@ keys.addEventListener('click', (event) => {
     // Nếu là phép toán hoặc dấu bằng
     if (action) {
         if (action === 'calculate') {
-            // Xử lý phép tính cuối cùng (2 toán hạng)
+        // Xử lý phép tính cuối cùng (2 toán hạng)
+        // Chỉ tính toán nếu đang có một phép toán chờ xử lý
+        if (calculator.operator) {
             handleOperator(calculator.operator, false);
             calculator.waitingForSecondOperand = true;
             calculator.operator = null;
+        }
         } else if (target.classList.contains('key-special')) {
             // Truyền 'action' (vd: 'sqrt', 'sine') vào hàm
             handleOperator(action, true);
